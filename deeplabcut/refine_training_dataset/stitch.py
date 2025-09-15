@@ -1176,24 +1176,55 @@ def stitch_tracklets(
 
         dlctrans = inference.DLCTrans(checkpoint=transformer_checkpoint)
 
+    # def trans_weight_func(tracklet1, tracklet2, nframe, feature_dict):
+    #     zfill_width = int(np.ceil(np.log10(nframe)))
+    #     if tracklet1 < tracklet2:
+    #         ind_img1 = tracklet1.inds[-1]
+    #         coord1 = tracklet1.data[-1][:, :2]
+    #         ind_img2 = tracklet2.inds[0]
+    #         coord2 = tracklet2.data[0][:, :2]
+    #     else:
+    #         ind_img2 = tracklet2.inds[-1]
+    #         ind_img1 = tracklet1.inds[0]
+    #         coord2 = tracklet2.data[-1][:, :2]
+    #         coord1 = tracklet1.data[0][:, :2]
+    #     t1 = (coord1, ind_img1)
+    #     t2 = (coord2, ind_img2)
+    #
+    #     dist = dlctrans(t1, t2, zfill_width, feature_dict)
+    #     dist = (dist + 1) / 2
+    #
+    #     return -dist
+
+    # def trans_weight_func(tracklet1, tracklet2, nframe, feature_dict):
+    #     zfill_width = int(np.ceil(np.log10(nframe)))
+    #     idx1 = np.argmax(np.mean(tracklet1.data[:, :, 2], axis=-1))
+    #     idx2 = np.argmax(np.mean(tracklet2.data[:, :, 2], axis=-1))
+    #     ind_img1 = tracklet1.inds[idx1]
+    #     ind_img2 = tracklet2.inds[idx2]
+    #     coord1 = tracklet1.data[idx1][:, :2]
+    #     coord2 = tracklet2.data[idx2][:, :2]
+    #
+    #     t1 = (coord1, ind_img1)
+    #     t2 = (coord2, ind_img2)
+    #
+    #     dist = dlctrans(t1, t2, zfill_width, feature_dict)
+    #     dist = (dist + 1) / 2
+    #     return -dist
+
     def trans_weight_func(tracklet1, tracklet2, nframe, feature_dict):
         zfill_width = int(np.ceil(np.log10(nframe)))
-        if tracklet1 < tracklet2:
-            ind_img1 = tracklet1.inds[-1]
-            coord1 = tracklet1.data[-1][:, :2]
-            ind_img2 = tracklet2.inds[0]
-            coord2 = tracklet2.data[0][:, :2]
-        else:
-            ind_img2 = tracklet2.inds[-1]
-            ind_img1 = tracklet1.inds[0]
-            coord2 = tracklet2.data[-1][:, :2]
-            coord1 = tracklet1.data[0][:, :2]
-        t1 = (coord1, ind_img1)
-        t2 = (coord2, ind_img2)
 
-        dist = dlctrans(t1, t2, zfill_width, feature_dict)
-        dist = (dist + 1) / 2
+        trans_input = {}
+        for i, tracklet in enumerate([tracklet1, tracklet2]):
+            indices = np.argsort(np.mean(tracklet.data[:, :, 2], axis=-1))[-3:]
+            trans_input[f'tracklet{i+1}'] = [(tracklet.data[j][:,:2], tracklet.inds[j]) for j in indices]
+        dists = []
+        for t1 in trans_input['tracklet1']:
+            for t2 in trans_input['tracklet2']:
+                dists.append(dlctrans(t1, t2, zfill_width, feature_dict))
 
+        dist = (np.mean(dists) + 1) / 2
         return -dist
 
     for video in vids:
