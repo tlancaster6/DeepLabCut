@@ -209,16 +209,16 @@ def build_detector_postprocessor(max_individuals: int) -> Postprocessor:
                     "bbox_scores": max_individuals,
                 },
             ),
-            # Begin code insertion
-            RemoveLowConfidenceBoxes(
-                bbox_score_thresh=0.25
-            ),
-            # End code insertion
             BboxToCoco(bounding_box_keys=["bboxes"]),
             RescaleAndOffset(
                 keys_to_rescale=["bboxes"],
                 mode=RescaleAndOffset.Mode.BBOX_XYWH,
             ),
+            # Begin code insertion
+            RemoveLowConfidenceBoxes(
+                bbox_score_thresh=0.25
+            ),
+            # End code insertion
         ]
     )
 
